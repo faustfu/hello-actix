@@ -1,0 +1,18 @@
+{
+  "name": "hello-actix",
+  "version": "1.0.0",
+  "description": "",
+  "config": {
+    "appname": "hello-actix"
+  },
+  "scripts": {
+    "start": "cross-env APP_NAME=$npm_package_config_appname pm2 start pm2.json"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "cross-env": "7.0.2"
+  },
+  "dependencies": {}
+}

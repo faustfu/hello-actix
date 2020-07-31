@@ -1,0 +1,9 @@
+{
+  "apps" : [
+    {
+      "name": "hello-actix",
+      "script": "cargo run",
+      "watch": ["Cargo.toml", "src"]
+    }
+  ]
+}
