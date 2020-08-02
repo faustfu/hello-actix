@@ -1,7 +1,14 @@
-use actix_web::{get, web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{get, web, App, Error, HttpRequest, HttpResponse, HttpServer, Responder};
+use futures::future::{ok, ready, Ready};
+use futures::stream::once;
+
+use serde::Serialize;
+
+use bytes::Bytes;
 use std::sync::Mutex;
 
 // 1. Use request handlers to extract parameters from a request(trait:FromRequest) and return a response(trait:Responder).
+// 2. By default actix-web provides Responder implementations for some standard types, such as &'static str, String, etc.
 #[get("/")]
 async fn index() -> impl Responder {
     HttpResponse::Ok().body("Hey there!")
@@ -31,9 +38,44 @@ async fn app1(data: web::Data<AppState>) -> impl Responder {
     ))
 }
 
-// 3. Use application configuration to setup handlers.
+// 4. Use application configuration to setup handlers.
 fn user_config(cfg: &mut web::ServiceConfig) {
     cfg.service(user);
+}
+
+// 5. Return custom object as response
+#[derive(Serialize)]
+struct MyObj {
+    name: &'static str,
+}
+
+impl Responder for MyObj {
+    type Error = Error;
+    type Future = Ready<Result<HttpResponse, Error>>;
+
+    fn respond_to(self, _req: &HttpRequest) -> Self::Future {
+        let body = serde_json::to_string(&self).unwrap();
+
+        // Create response and set content type
+        ready(Ok(HttpResponse::Ok()
+            .content_type("application/json")
+            .body(body)))
+    }
+}
+
+#[get("/custom")]
+async fn custom() -> impl Responder {
+    MyObj { name: "user" }
+}
+
+// 6. Return stream response
+#[get("/stream")]
+async fn stream() -> HttpResponse {
+    let body = once(ok::<_, Error>(Bytes::from_static(b"stream")));
+
+    HttpResponse::Ok()
+        .content_type("application/json")
+        .streaming(body)
 }
 
 // start point
@@ -44,14 +86,16 @@ async fn main() -> std::io::Result<()> {
         counter: Mutex::new(0),
     });
 
-    // Use App instance to register routes, middlewares and to store state.
+    // Use App factory to register routes, middlewares and to store state. The shared data has to be thread-safe.
     HttpServer::new(move || {
         App::new()
             .service(index)
+            .service(custom)
+            .service(stream)
             .service(web::scope("/user").configure(user_config)) // Include the configuration.
             .service(web::scope("/app1").app_data(state.clone()).service(app1)) // Clone the state for each thread in the scope.
     })
     .bind("127.0.0.1:8080")?
-    .run()
+    .run() // Run and return an instance of the server.
     .await
 }
