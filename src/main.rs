@@ -10,8 +10,6 @@ use futures::stream::once;
 
 use serde::{Deserialize, Serialize};
 
-use log::debug;
-
 use bytes::Bytes;
 use std::sync::Mutex;
 
@@ -113,7 +111,6 @@ impl error::ResponseError for MyError {}
 #[get("/fail")]
 async fn fail() -> Result<&'static str, MyError> {
     let err = MyError { name: "test fail" };
-    debug!("{}", err);
     Err(err)
 }
 
@@ -190,7 +187,7 @@ async fn main() -> std::io::Result<()> {
         counter: Mutex::new(0),
     });
 
-    std::env::set_var("RUST_LOG", "my_errors=debug,actix_web=info");
+    std::env::set_var("RUST_LOG", "actix_web=info");
     std::env::set_var("RUST_BACKTRACE", "1");
     env_logger::init();
 
