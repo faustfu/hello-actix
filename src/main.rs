@@ -1,8 +1,8 @@
-use actix_web::{get, web, App, Error, HttpRequest, HttpResponse, HttpServer, Responder};
+use actix_web::{get, post, web, App, Error, HttpRequest, HttpResponse, HttpServer, Responder};
 use futures::future::{ok, ready, Ready};
 use futures::stream::once;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use bytes::Bytes;
 use std::sync::Mutex;
@@ -14,10 +14,26 @@ async fn index() -> impl Responder {
     HttpResponse::Ok().body("Hey there!")
 }
 
-// 2. Use path utility to parse path parameters.
+// 3. Use extractors to parse the request.
+#[derive(Deserialize)]
+struct Info {
+    age: u32,
+}
 #[get("/{id}/{name}")]
-async fn user(info: web::Path<(u32, String)>) -> impl Responder {
-    HttpResponse::Ok().body(format!("Hello {}! id:{}", info.1, info.0))
+async fn user_get(args: web::Path<(u32, String)>, info: web::Query<Info>) -> impl Responder {
+    HttpResponse::Ok().body(format!(
+        "Hello {}! id:[{}], age:[{}]",
+        args.1, args.0, info.age
+    ))
+}
+
+#[derive(Deserialize)]
+struct UserInfo {
+    name: String,
+}
+#[post("")]
+async fn user_post(info: web::Form<UserInfo>) -> impl Responder {
+    HttpResponse::Ok().body(format!("Hello {}!", info.name))
 }
 
 // 3. Share state in the scope.
@@ -40,7 +56,7 @@ async fn app1(data: web::Data<AppState>) -> impl Responder {
 
 // 4. Use application configuration to setup handlers.
 fn user_config(cfg: &mut web::ServiceConfig) {
-    cfg.service(user);
+    cfg.service(user_get).service(user_post);
 }
 
 // 5. Return custom object as response
