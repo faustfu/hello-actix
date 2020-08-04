@@ -1,3 +1,5 @@
+// services <1-1> resources <1-*> sub resources <1-*> routes <1-*> guards
+//                                                           <1-1> handlers
 use actix_http::ResponseBuilder;
 use actix_web::http::{header, StatusCode};
 use actix_web::{
@@ -195,13 +197,13 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .wrap(Logger::default())
-            .service(index)
+            .service(index) // Use service() to register a resource.
             .service(custom)
             .service(stream)
             .service(fail)
             .service(bad_data)
             .service(user_error)
-            .service(web::scope("/user").configure(user_config)) // Include the configuration.
+            .service(web::scope("/user").configure(user_config)) // Include the configuration with a specified scope.
             .service(web::scope("/app1").app_data(state.clone()).service(app1)) // Clone the state for each thread in the scope.
     })
     .bind("127.0.0.1:8080")?
